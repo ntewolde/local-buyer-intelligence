@@ -1,11 +1,12 @@
 import os
 import pytest
 
-# Set environment variables BEFORE any imports that use settings
-os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
-os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
-os.environ["CELERY_TASK_ALWAYS_EAGER"] = "true"
-os.environ["CELERY_TASK_EAGER_PROPAGATES"] = "true"
+# Set environment variables BEFORE any imports that use settings (CRITICAL: Phase 1.1)
+# Use setdefault to ensure deterministic initialization order
+os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
+os.environ.setdefault("SECRET_KEY", "test-secret")
+os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "true")
+os.environ.setdefault("CELERY_TASK_EAGER_PROPAGATES", "true")
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
