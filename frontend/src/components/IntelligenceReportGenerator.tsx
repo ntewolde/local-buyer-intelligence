@@ -1,11 +1,17 @@
 /**
  * Intelligence Report Generator Component
  */
-import { useState } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from 'react';
+import api from '../services/api';
 
 interface IntelligenceReportGeneratorProps {
   onReportGenerated?: (report: any) => void;
+}
+
+interface Geography {
+  id: number;
+  name: string;
+  state_code: string;
 }
 
 const SERVICE_CATEGORIES = [
@@ -20,6 +26,7 @@ const SERVICE_CATEGORIES = [
 export default function IntelligenceReportGenerator({
   onReportGenerated,
 }: IntelligenceReportGeneratorProps) {
+  const [geographies, setGeographies] = useState<Geography[]>([]);
   const [geographyId, setGeographyId] = useState<string>('');
   const [zipCodes, setZipCodes] = useState<string>('');
   const [serviceCategory, setServiceCategory] = useState<string>('general');
@@ -28,9 +35,22 @@ export default function IntelligenceReportGenerator({
   const [report, setReport] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchGeographies();
+  }, []);
+
+  const fetchGeographies = async () => {
+    try {
+      const response = await api.get('/api/v1/geography/');
+      setGeographies(response.data);
+    } catch (error) {
+      console.error('Failed to fetch geographies:', error);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!geographyId || !zipCodes) {
-      setError('Geography ID and ZIP codes are required');
+      setError('Geography and ZIP codes are required');
       return;
     }
 
@@ -38,15 +58,12 @@ export default function IntelligenceReportGenerator({
     setError(null);
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/intelligence/reports`,
-        {
-          geography_id: parseInt(geographyId),
-          zip_codes: zipCodes,
-          service_category: serviceCategory,
-          report_name: reportName || undefined,
-        }
-      );
+      const response = await api.post('/api/v1/intelligence/reports', {
+        geography_id: parseInt(geographyId),
+        zip_codes: zipCodes,
+        service_category: serviceCategory,
+        report_name: reportName || undefined,
+      });
 
       setReport(response.data);
       if (onReportGenerated) {
@@ -68,15 +85,21 @@ export default function IntelligenceReportGenerator({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Geography ID
+            Geography *
           </label>
-          <input
-            type="number"
+          <select
+            required
             value={geographyId}
             onChange={(e) => setGeographyId(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Enter geography ID"
-          />
+          >
+            <option value="">Select geography...</option>
+            {geographies.map((geo) => (
+              <option key={geo.id} value={geo.id}>
+                {geo.name}, {geo.state_code}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

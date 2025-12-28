@@ -10,6 +10,10 @@ This guide will help you set up and run the Local Buyer Intelligence Platform.
 - Redis (for Celery background tasks)
 - Docker and Docker Compose (optional, for easy setup)
 
+## Important: PII Compliance
+
+This platform is designed to **never store or process PII (Personal Identifiable Information)**. All data collection, storage, and APIs are enforced to be PII-free. See the main README for details.
+
 ## Quick Start with Docker
 
 The easiest way to get started is using Docker Compose:
@@ -110,9 +114,44 @@ npm run dev
 
 The frontend will be available at `http://localhost:3000`
 
+## Initial Setup (Create Admin User)
+
+After running migrations, you must create the first client and admin user. See [QUICK_START.md](QUICK_START.md) for a Python script, or use this:
+
+```python
+# backend/create_admin.py
+from app.core.database import SessionLocal
+from app.models.client import Client, User, UserRole
+from app.core.security import get_password_hash
+import uuid
+
+db = SessionLocal()
+
+# Create client
+client = Client(id=uuid.uuid4(), name="Default Client")
+db.add(client)
+db.commit()
+
+# Create admin user
+admin = User(
+    id=uuid.uuid4(),
+    client_id=client.id,
+    email="admin@example.com",
+    hashed_password=get_password_hash("changeme"),
+    role=UserRole.ADMIN,
+    is_active=True
+)
+db.add(admin)
+db.commit()
+
+print(f"Admin created: {admin.email} / changeme")
+```
+
+Run: `python create_admin.py`
+
 ## Initial Data Setup
 
-After setting up the database, you'll need to seed it with some initial data:
+After creating the admin user, you can start using the platform:
 
 ### 1. Create Geography Records
 
@@ -172,14 +211,22 @@ curl -X POST "http://localhost:8000/api/v1/households/" \
 Once everything is running, you can test the API:
 
 ```bash
-# Health check
+# Health check (no auth required)
 curl http://localhost:8000/health
 
-# List geographies
-curl http://localhost:8000/api/v1/geography/
+# Login to get token
+TOKEN=$(curl -X POST "http://localhost:8000/api/v1/auth/login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin@example.com&password=changeme" \
+  | jq -r '.access_token')
+
+# List geographies (requires auth)
+curl http://localhost:8000/api/v1/geography/ \
+  -H "Authorization: Bearer $TOKEN"
 
 # Generate an intelligence report
 curl -X POST "http://localhost:8000/api/v1/intelligence/reports" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "geography_id": 1,
@@ -188,6 +235,8 @@ curl -X POST "http://localhost:8000/api/v1/intelligence/reports" \
     "report_name": "Test Report"
   }'
 ```
+
+**Note**: Most API endpoints require authentication. Use the interactive docs at http://localhost:8000/docs - it has a "Authorize" button to enter your token.
 
 ## Development Workflow
 

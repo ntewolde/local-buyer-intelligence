@@ -3,7 +3,7 @@
  * Shows demand scores by ZIP code
  */
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface DemandHeatmapProps {
@@ -22,16 +22,13 @@ export default function DemandHeatmap({
     const fetchData = async () => {
       try {
         // Fetch intelligence report with ZIP demand scores
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/intelligence/reports`,
-          {
-            params: {
-              geography_id: geographyId,
-              service_category: serviceCategory,
-              limit: 1,
-            },
-          }
-        );
+        const response = await api.get('/api/v1/intelligence/reports', {
+          params: {
+            geography_id: geographyId,
+            service_category: serviceCategory,
+            limit: 1,
+          },
+        });
 
         if (response.data && response.data.length > 0) {
           const report = response.data[0];
