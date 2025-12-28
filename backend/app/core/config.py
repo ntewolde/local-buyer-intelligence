@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # API Rate Limits
     API_RATE_LIMIT_PER_MINUTE: int = 60
     
+    # Feature Flags - Module Gating (PHASE 2)
+    # Future work modules can be enabled/disabled via environment variables
+    FEATURE_LEAD_FUNNEL_ENABLED: bool = False  # Option 2
+    FEATURE_PUBLIC_SIGNALS_ENABLED: bool = False  # Option 3
+    FEATURE_CHANNEL_CRM_ENABLED: bool = False  # Option 4
+    FEATURE_CAMPAIGNS_ENABLED: bool = False  # Option 5
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
