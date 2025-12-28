@@ -23,6 +23,12 @@ class Geography(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     
+    # Data freshness timestamps (per spec section D3)
+    census_last_refreshed_at = Column(DateTime(timezone=True), nullable=True)
+    property_last_refreshed_at = Column(DateTime(timezone=True), nullable=True)
+    events_last_refreshed_at = Column(DateTime(timezone=True), nullable=True)
+    channels_last_refreshed_at = Column(DateTime(timezone=True), nullable=True)
+    
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

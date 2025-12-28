@@ -99,14 +99,15 @@ async def refresh_census(
         status=IngestionStatus.QUEUED
     )
     db.add(ingestion_run)
+    db.flush()  # Flush to get the ID without committing
+    ingestion_run_id = str(ingestion_run.id)  # Get ID before commit
     db.commit()
-    db.refresh(ingestion_run)
     
     # Enqueue Celery task
-    refresh_census_task.delay(str(ingestion_run.id), geography_id, str(client_id))
+    refresh_census_task.delay(ingestion_run_id, geography_id, str(client_id))
     
     return {
-        "ingestion_run_id": str(ingestion_run.id),
+        "ingestion_run_id": ingestion_run_id,
         "status": "queued",
         "geography_id": geography_id
     }

@@ -155,6 +155,143 @@ async def get_intelligence_report(
     return report
 
 
+@router.get("/reports/{report_id}/export/json")
+async def export_report_json(
+    report_id: int,
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
+):
+    """Export intelligence report as JSON (per spec section D5)"""
+    from fastapi.responses import JSONResponse
+    
+    report = db.query(IntelligenceReport).filter(
+        IntelligenceReport.id == report_id,
+        IntelligenceReport.client_id == client_id
+    ).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Build exportable JSON structure
+    export_data = {
+        "report_id": report.id,
+        "report_name": report.report_name,
+        "service_category": report.service_category,
+        "geography_id": report.geography_id,
+        "zip_codes": report.zip_codes,
+        "generated_at": report.generated_at.isoformat() if report.generated_at else None,
+        "buyer_profile": report.buyer_profile,
+        "zip_demand_scores": report.zip_demand_scores,
+        "top_zip_codes": report.report_data.get("top_zip_codes", []) if report.report_data else [],
+        "channel_recommendations": report.channel_recommendations,
+        "timing_recommendations": report.timing_recommendations,
+        "summary": {
+            "total_households": report.total_households,
+            "target_households": report.target_households,
+            "average_demand_score": report.average_demand_score,
+        }
+    }
+    
+    return JSONResponse(content=export_data)
+
+
+@router.get("/reports/{report_id}/export/csv")
+async def export_report_csv(
+    report_id: int,
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
+):
+    """Export intelligence report as CSV (per spec section D5)"""
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    report = db.query(IntelligenceReport).filter(
+        IntelligenceReport.id == report_id,
+        IntelligenceReport.client_id == client_id
+    ).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Create CSV content
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        "Report ID", "Report Name", "Service Category", "Geography ID", 
+        "ZIP Codes", "Total Households", "Target Households", "Average Demand Score"
+    ])
+    
+    # Write report summary row
+    writer.writerow([
+        report.id,
+        report.report_name,
+        report.service_category,
+        report.geography_id,
+        report.zip_codes,
+        report.total_households,
+        report.target_households,
+        report.average_demand_score
+    ])
+    
+    # Write top ZIP codes section
+    writer.writerow([])
+    writer.writerow(["Top ZIP Codes"])
+    writer.writerow(["ZIP Code", "Score", "Rationale", "Population", "Household Count", "Median Income"])
+    
+    top_zips = report.report_data.get("top_zip_codes", []) if report.report_data else []
+    for zip_data in top_zips:
+        writer.writerow([
+            zip_data.get("zip_code", ""),
+            zip_data.get("score", ""),
+            zip_data.get("rationale", ""),
+            zip_data.get("population", ""),
+            zip_data.get("household_count", ""),
+            zip_data.get("median_income", "")
+        ])
+    
+    # Write channel recommendations section
+    writer.writerow([])
+    writer.writerow(["Channel Recommendations"])
+    writer.writerow(["Channel Type", "Name", "Rationale", "Estimated Reach", "Website"])
+    
+    channels = report.channel_recommendations or []
+    for channel in channels:
+        writer.writerow([
+            channel.get("channel_type", ""),
+            channel.get("name", ""),
+            channel.get("rationale", ""),
+            channel.get("estimated_reach", ""),
+            channel.get("website", "")
+        ])
+    
+    # Write timing recommendations section
+    writer.writerow([])
+    writer.writerow(["Timing Recommendations"])
+    writer.writerow(["Time Period", "Rationale", "Demand Score", "Recommended Actions"])
+    
+    timing = report.timing_recommendations or []
+    for rec in timing:
+        actions = rec.get("recommended_actions", [])
+        actions_str = "; ".join(actions) if isinstance(actions, list) else str(actions)
+        writer.writerow([
+            rec.get("time_period", ""),
+            rec.get("rationale", ""),
+            rec.get("demand_score", ""),
+            actions_str
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=report_{report_id}.csv"
+        }
+    )
+
+
 @router.post("/buyer-profile", response_model=BuyerProfileResponse)
 async def generate_buyer_profile(
     geography_id: Optional[int] = Query(None),

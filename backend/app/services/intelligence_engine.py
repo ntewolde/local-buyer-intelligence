@@ -309,7 +309,7 @@ class IntelligenceEngine:
             # Boost based on demographic signals
             zip_signals = signals_by_zip.get(zip_code.id, [])
             for signal in zip_signals:
-                metadata_str = signal.metadata or ""
+                metadata_str = signal.signal_metadata or ""
                 if "income" in metadata_str.lower() and signal.value:
                     if signal.value > 75000:
                         avg_score += 5.0
@@ -370,7 +370,7 @@ class IntelligenceEngine:
             
             # Add demographic context
             for signal in signals:
-                metadata_str = signal.metadata or ""
+                metadata_str = signal.signal_metadata or ""
                 if "income" in metadata_str.lower() and signal.value:
                     if signal.value > 75000:
                         rationale_parts.append("High median household income")

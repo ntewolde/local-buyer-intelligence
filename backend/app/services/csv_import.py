@@ -192,7 +192,7 @@ class CSVImportService:
         rows: List[Dict[str, Any]],
         geography_id: int
     ) -> int:
-        """Import events CSV as DemandSignal rows"""
+        """Import events CSV as DemandSignal rows with deduplication"""
         from app.models.demand_signal import DemandSignal
         from app.models.geography import ZIPCode, Geography
         
@@ -213,6 +213,34 @@ class CSVImportService:
                     end_date = datetime.fromisoformat(row["end_date"].replace("Z", "+00:00"))
             except (ValueError, AttributeError):
                 pass
+            
+            if not start_date:
+                continue  # Required field per spec
+            
+            # Deduplication: check if event already exists (per spec section 5.4)
+            existing = self.db.query(DemandSignal).filter(
+                DemandSignal.client_id == self.client_id,
+                DemandSignal.geography_id == geography_id,
+                DemandSignal.signal_type == SignalType.EVENT,
+                DemandSignal.title == event_name,
+                DemandSignal.event_start_date == start_date
+            ).first()
+            
+            if existing:
+                # Update existing event
+                if end_date:
+                    existing.event_end_date = end_date
+                if row.get("source_url"):
+                    existing.source_url = row.get("source_url")
+                # Update metadata
+                metadata = json.loads(existing.signal_metadata) if existing.signal_metadata else {}
+                if row.get("category"):
+                    metadata["category"] = row.get("category")
+                if row.get("estimated_attendance"):
+                    metadata["estimated_attendance"] = row.get("estimated_attendance")
+                existing.signal_metadata = json.dumps(metadata)
+                existing.updated_at = datetime.utcnow()
+                continue  # Skip adding new record
             
             # Get ZIP code if provided
             zip_code_id = None
@@ -243,7 +271,7 @@ class CSVImportService:
                 event_end_date=end_date,
                 source_name="csv_events_import",
                 source_url=row.get("source_url"),
-                metadata=json.dumps({
+                signal_metadata=json.dumps({
                     "source": "csv_import",
                     "category": row.get("category"),
                     "estimated_attendance": row.get("estimated_attendance"),
