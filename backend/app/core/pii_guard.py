@@ -7,12 +7,14 @@ import re
 
 
 # Disallowed keys/fields (case-insensitive)
+# NOTE: "name" and "fullname" are NOT disallowed - they are required for organizations/institutions
+# Only personal identifiers are disallowed
 DISALLOWED_PII_KEYS = [
     "email", "e-mail", "e_mail", "email_address",
     "phone", "phone_number", "telephone", "mobile", "cell", "cell_phone",
     "firstname", "first_name", "fname",
     "lastname", "last_name", "lname", "surname",
-    "fullname", "full_name", "name",
+    "full_name",  # Personal full name (not organizational "name" or "fullname")
     "owner", "owner_name", "property_owner", "homeowner_name",
     "address", "street", "street_address", "street_address_line_1",
     "apt", "apartment", "unit", "unit_number", "suite",

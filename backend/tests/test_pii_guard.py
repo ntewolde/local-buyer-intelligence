@@ -142,6 +142,42 @@ def test_pii_variations():
         assert check_key(key) is True, f"Failed to detect PII key: {key}"
 
 
+def test_organizational_name_allowed():
+    """Test that organizational 'name' field is allowed (PHASE 1.2)"""
+    # Organizational names should be allowed
+    org_data = {"name": "Sunset HOA"}
+    assert_no_pii_keys(org_data)  # Should not raise
+    
+    channel_data = {"name": "Community Center", "channel_type": "VENUE"}
+    assert_no_pii_keys(channel_data)  # Should not raise
+    
+    geography_data = {"name": "Atlanta", "state_code": "GA"}
+    assert_no_pii_keys(geography_data)  # Should not raise
+
+
+def test_personal_name_rejected():
+    """Test that personal name fields are rejected (PHASE 1.2)"""
+    # Personal names should be rejected
+    with pytest.raises(ValueError, match="Disallowed PII key detected.*owner_name"):
+        assert_no_pii_keys({"owner_name": "John Smith"})
+    
+    with pytest.raises(ValueError, match="Disallowed PII key detected.*first_name"):
+        assert_no_pii_keys({"first_name": "Jane"})
+    
+    with pytest.raises(ValueError, match="Disallowed PII key detected.*full_name"):
+        assert_no_pii_keys({"full_name": "John Doe"})
+
+
+def test_nested_personal_name_rejected():
+    """Test that nested personal names are rejected (PHASE 1.2)"""
+    # Nested personal names should be rejected
+    with pytest.raises(ValueError, match="Disallowed PII key detected.*owner_name"):
+        assert_no_pii_keys({"metadata": {"owner_name": "Jane"}})
+    
+    with pytest.raises(ValueError, match="Disallowed PII key detected.*first_name"):
+        assert_no_pii_keys({"data": {"user": {"first_name": "John"}}})
+
+
 
 
 
