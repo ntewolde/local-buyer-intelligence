@@ -2,10 +2,11 @@
 API Router - Main API endpoint aggregation
 """
 from fastapi import APIRouter
-from app.api.v1.endpoints import geography, households, intelligence, demand_signals
+from app.api.v1.endpoints import geography, households, intelligence, demand_signals, auth
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(geography.router, prefix="/geography", tags=["geography"])
 api_router.include_router(households.router, prefix="/households", tags=["households"])
 api_router.include_router(intelligence.router, prefix="/intelligence", tags=["intelligence"])

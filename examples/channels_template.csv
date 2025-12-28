@@ -1,0 +1,7 @@
+channel_type,name,city,state,zip_code,estimated_reach,website,source_url,notes
+HOA,Sunset Hills HOA,New York,NY,10001,150,https://example.com/sunset-hills,https://example.com/hoa-directory,Active community association
+PROPERTY_MANAGER,ABC Property Management,New York,NY,10001,500,https://example.com/abc-properties,https://example.com/pm-directory,Manages multiple residential buildings
+SCHOOL,Lincoln Elementary School,New York,NY,10002,400,https://example.com/lincoln-school,https://example.com/school-district,Public elementary school
+CHURCH,Community Church,New York,NY,10001,200,https://example.com/community-church,https://example.com/church-directory,Local community church
+VENUE,City Park Amphitheater,New York,NY,10002,1000,https://example.com/amphitheater,https://example.com/venue-directory,Outdoor event venue
+

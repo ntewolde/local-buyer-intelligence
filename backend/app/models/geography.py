@@ -4,6 +4,7 @@ Geographic Data Models
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 
 
@@ -12,6 +13,7 @@ class Geography(Base):
     __tablename__ = "geographies"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False, index=True)
     type = Column(String(50), nullable=False)  # city, state, county
     state_code = Column(String(2), nullable=False, index=True)
@@ -26,9 +28,13 @@ class Geography(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
+    client = relationship("Client", back_populates="geographies")
     zip_codes = relationship("ZIPCode", back_populates="geography")
     neighborhoods = relationship("Neighborhood", back_populates="geography")
     households = relationship("Household", back_populates="geography")
+    demand_signals = relationship("DemandSignal", back_populates="geography")
+    channels = relationship("Channel", back_populates="geography")
+    ingestion_runs = relationship("IngestionRun", back_populates="geography")
     
     def __repr__(self):
         return f"<Geography {self.name}, {self.state_code}>"

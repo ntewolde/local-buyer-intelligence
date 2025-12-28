@@ -38,3 +38,10 @@ pytz==2023.3
 # Environment
 python-environ==0.4.58
 
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+

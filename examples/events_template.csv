@@ -1,0 +1,5 @@
+event_name,start_date,end_date,zip_code,category,estimated_attendance,source_url
+Summer Festival,2024-07-04,2024-07-04,10001,community_event,5000,https://example.com/events/summer-festival
+City Market,2024-06-15,2024-06-15,10002,market,1000,https://example.com/events/city-market
+School Fair,2024-09-10,2024-09-10,10001,school_event,500,https://example.com/events/school-fair
+

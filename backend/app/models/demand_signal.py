@@ -4,6 +4,7 @@ Demand Signal Models
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 import enum
 from app.core.database import Base
 
@@ -31,6 +32,7 @@ class SignalType(str, enum.Enum):
     TURNOVER = "turnover"  # Property sales
     WEATHER = "weather"  # Weather patterns
     CENSUS = "census"  # Census data
+    DEMOGRAPHIC = "demographic"  # Demographic aggregates
     CUSTOM = "custom"  # Custom signals
 
 
@@ -42,10 +44,11 @@ class DemandSignal(Base):
     __tablename__ = "demand_signals"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False, index=True)
     
     # Geographic reference
-    geography_id = Column(Integer, ForeignKey("geographies.id"))
-    zip_code_id = Column(Integer, ForeignKey("zip_codes.id"))
+    geography_id = Column(Integer, ForeignKey("geographies.id"), nullable=True)
+    zip_code_id = Column(Integer, ForeignKey("zip_codes.id"), nullable=True)
     
     # Signal classification
     signal_type = Column(Enum(SignalType), nullable=False)
@@ -73,13 +76,19 @@ class DemandSignal(Base):
     source_url = Column(String(500))
     source_data = Column(Text)  # JSON string of raw source data
     
+    # Value for numeric signals (e.g., population count, income)
+    value = Column(Float, nullable=True)
+    
+    # Metadata JSON for flexible additional data
+    metadata = Column(Text)  # JSON string
+    
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True)
     
     # Relationships
-    geography = relationship("Geography")
+    geography = relationship("Geography", back_populates="demand_signals")
     zip_code = relationship("ZIPCode", back_populates="demand_signals")
     
     def __repr__(self):

@@ -4,6 +4,7 @@ Household Data Models (Non-PII)
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 import enum
 from app.core.database import Base
 
@@ -34,11 +35,15 @@ class Household(Base):
     __tablename__ = "households"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False, index=True)
     
     # Geographic references
     geography_id = Column(Integer, ForeignKey("geographies.id"))
     zip_code_id = Column(Integer, ForeignKey("zip_codes.id"))
     neighborhood_id = Column(Integer, ForeignKey("neighborhoods.id"))
+    
+    # Census block group for aggregation (non-PII)
+    census_block_group = Column(String(12), nullable=True, index=True)
     
     # Property characteristics (from public records)
     property_type = Column(Enum(PropertyType), default=PropertyType.UNKNOWN)

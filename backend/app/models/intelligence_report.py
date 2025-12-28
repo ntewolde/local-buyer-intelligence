@@ -4,6 +4,7 @@ Intelligence Report Models
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 from app.models.demand_signal import ServiceCategory
 
@@ -16,6 +17,7 @@ class IntelligenceReport(Base):
     __tablename__ = "intelligence_reports"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False, index=True)
     
     # Geographic scope
     geography_id = Column(Integer, ForeignKey("geographies.id"))
@@ -52,14 +54,12 @@ class IntelligenceReport(Base):
     # Full report data (JSON)
     report_data = Column(JSON)  # Complete report structure
     
-    # Client/User reference (if needed)
-    client_id = Column(Integer)  # Reference to client/user
-    
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
+    client = relationship("Client", back_populates="intelligence_reports")
     geography = relationship("Geography")
     
     def __repr__(self):
