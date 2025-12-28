@@ -1,5 +1,8 @@
 """
 Public Signals Ingestion API Endpoints (Option 3: Public Signals Ingestion)
+
+NOTE: This module is gated by feature flag FEATURE_PUBLIC_SIGNALS_ENABLED.
+The router is conditionally included in app.api.v1.api based on settings.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session

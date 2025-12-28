@@ -1,5 +1,8 @@
 """
 Channel Outreach API Endpoints (Option 4: Institutional Channel CRM)
+
+NOTE: This module is gated by feature flag FEATURE_CHANNEL_CRM_ENABLED.
+The router is conditionally included in app.api.v1.api based on settings.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session

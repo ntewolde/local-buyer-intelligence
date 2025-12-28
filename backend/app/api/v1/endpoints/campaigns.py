@@ -1,5 +1,8 @@
 """
 Campaign API Endpoints (Option 5: Campaign Orchestrator)
+
+NOTE: This module is gated by feature flag FEATURE_CAMPAIGNS_ENABLED.
+The router is conditionally included in app.api.v1.api based on settings.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session

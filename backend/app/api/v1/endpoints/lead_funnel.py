@@ -1,5 +1,8 @@
 """
 Lead Funnel API Endpoints (Option 2: Opt-in Lead Funnel Builder)
+
+NOTE: This module is gated by feature flag FEATURE_LEAD_FUNNEL_ENABLED.
+The router is conditionally included in app.api.v1.api based on settings.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
