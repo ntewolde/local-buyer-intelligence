@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from app.core.database import get_db
+from app.core.dependencies import get_current_active_client_id
 from app.models.demand_signal import DemandSignal, ServiceCategory, SignalType
 from app.schemas.demand_signal import DemandSignalCreate, DemandSignalResponse
+import uuid
 
 router = APIRouter()
 
@@ -15,10 +17,13 @@ router = APIRouter()
 @router.post("/", response_model=DemandSignalResponse)
 async def create_demand_signal(
     signal: DemandSignalCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Create a new demand signal"""
-    db_signal = DemandSignal(**signal.model_dump())
+    signal_data = signal.model_dump()
+    signal_data["client_id"] = client_id
+    db_signal = DemandSignal(**signal_data)
     db.add(db_signal)
     db.commit()
     db.refresh(db_signal)
@@ -36,10 +41,11 @@ async def list_demand_signals(
     end_date: Optional[datetime] = Query(None),
     limit: int = Query(100, le=500),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """List demand signals with optional filters"""
-    query = db.query(DemandSignal)
+    query = db.query(DemandSignal).filter(DemandSignal.client_id == client_id)
     
     if geography_id:
         query = query.filter(DemandSignal.geography_id == geography_id)
@@ -77,10 +83,14 @@ async def list_demand_signals(
 @router.get("/{signal_id}", response_model=DemandSignalResponse)
 async def get_demand_signal(
     signal_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Get a specific demand signal"""
-    signal = db.query(DemandSignal).filter(DemandSignal.id == signal_id).first()
+    signal = db.query(DemandSignal).filter(
+        DemandSignal.id == signal_id,
+        DemandSignal.client_id == client_id
+    ).first()
     if not signal:
         raise HTTPException(status_code=404, detail="Demand signal not found")
     return signal
@@ -89,10 +99,16 @@ async def get_demand_signal(
 @router.post("/batch", response_model=List[DemandSignalResponse])
 async def create_demand_signals_batch(
     signals: List[DemandSignalCreate],
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Create multiple demand signals"""
-    db_signals = [DemandSignal(**s.model_dump()) for s in signals]
+    db_signals = []
+    for s in signals:
+        s_data = s.model_dump()
+        s_data["client_id"] = client_id
+        db_signals.append(DemandSignal(**s_data))
+    
     db.add_all(db_signals)
     db.commit()
     

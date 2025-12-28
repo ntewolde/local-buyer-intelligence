@@ -8,6 +8,7 @@ from app.models.household import Household, PropertyType, OwnershipType
 from app.models.demand_signal import ServiceCategory
 from app.models.geography import ZIPCode
 from sqlalchemy import func, and_
+import uuid
 
 
 class IntelligenceEngine:
@@ -163,13 +164,14 @@ class IntelligenceEngine:
     
     def get_households_by_geography(
         self,
+        client_id: uuid.UUID,
         geography_id: Optional[int] = None,
         zip_code_ids: Optional[List[int]] = None,
         service_category: ServiceCategory = ServiceCategory.GENERAL,
         min_demand_score: float = 0.0
     ) -> List[Household]:
         """Get households filtered by geography and demand score"""
-        query = self.db.query(Household)
+        query = self.db.query(Household).filter(Household.client_id == client_id)
         
         if geography_id:
             query = query.filter(Household.geography_id == geography_id)
@@ -179,10 +181,30 @@ class IntelligenceEngine:
         
         households = query.all()
         
+        # Also consider DemandSignal data for scoring
+        # Get demographic signals that might affect scoring
+        from app.models.demand_signal import DemandSignal, SignalType
+        signals = self.db.query(DemandSignal).filter(
+            DemandSignal.client_id == client_id,
+            DemandSignal.geography_id == geography_id,
+            DemandSignal.signal_type == SignalType.DEMOGRAPHIC
+        ).all()
+        
         # Filter by demand score
         filtered = []
         for household in households:
             score = self.calculate_household_demand_score(household, service_category)
+            
+            # Boost score based on demographic signals (income, population density)
+            for signal in signals:
+                if signal.zip_code_id == household.zip_code_id:
+                    # If median income signal, boost score for higher income areas
+                    if "income" in (signal.metadata or "").lower() and signal.value:
+                        if signal.value > 75000:
+                            score += 5.0
+                        elif signal.value > 50000:
+                            score += 2.0
+            
             if score >= min_demand_score:
                 filtered.append(household)
         
@@ -246,6 +268,7 @@ class IntelligenceEngine:
     
     def calculate_zip_demand_scores(
         self,
+        client_id: uuid.UUID,
         zip_code_ids: List[int],
         service_category: ServiceCategory
     ) -> Dict[str, float]:
@@ -253,8 +276,22 @@ class IntelligenceEngine:
         zip_codes = self.db.query(ZIPCode).filter(ZIPCode.id.in_(zip_code_ids)).all()
         scores = {}
         
+        # Get demographic signals for ZIP codes
+        from app.models.demand_signal import DemandSignal, SignalType
+        signals_by_zip = {}
+        signals = self.db.query(DemandSignal).filter(
+            DemandSignal.client_id == client_id,
+            DemandSignal.zip_code_id.in_(zip_code_ids),
+            DemandSignal.signal_type == SignalType.DEMOGRAPHIC
+        ).all()
+        for signal in signals:
+            if signal.zip_code_id not in signals_by_zip:
+                signals_by_zip[signal.zip_code_id] = []
+            signals_by_zip[signal.zip_code_id].append(signal)
+        
         for zip_code in zip_codes:
             households = self.db.query(Household).filter(
+                Household.client_id == client_id,
                 Household.zip_code_id == zip_code.id
             ).all()
             
@@ -266,8 +303,18 @@ class IntelligenceEngine:
                 self.calculate_household_demand_score(h, service_category)
                 for h in households
             )
-            avg_score = total_score / len(households)
-            scores[zip_code.zip_code] = round(avg_score, 2)
+            avg_score = total_score / len(households) if households else 0.0
+            
+            # Boost based on demographic signals
+            zip_signals = signals_by_zip.get(zip_code.id, [])
+            for signal in zip_signals:
+                if "income" in (signal.metadata or "").lower() and signal.value:
+                    if signal.value > 75000:
+                        avg_score += 5.0
+                    elif signal.value > 50000:
+                        avg_score += 2.0
+            
+            scores[zip_code.zip_code] = round(min(100.0, max(0.0, avg_score)), 2)
         
         return scores
 

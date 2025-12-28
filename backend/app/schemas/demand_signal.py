@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from app.models.demand_signal import ServiceCategory, SignalType
+import uuid
 
 
 class DemandSignalCreate(BaseModel):
@@ -30,6 +31,7 @@ class DemandSignalCreate(BaseModel):
 class DemandSignalResponse(BaseModel):
     """Schema for demand signal response"""
     id: int
+    client_id: uuid.UUID
     geography_id: Optional[int]
     zip_code_id: Optional[int]
     signal_type: SignalType
@@ -51,4 +53,5 @@ class DemandSignalResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        use_enum_values = True
 

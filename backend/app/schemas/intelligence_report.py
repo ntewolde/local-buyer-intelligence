@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 from app.models.demand_signal import ServiceCategory
+import uuid
 
 
 class BuyerProfileResponse(BaseModel):
@@ -63,6 +64,7 @@ class NeighborhoodInsight(BaseModel):
 class IntelligenceReportResponse(BaseModel):
     """Schema for intelligence report response"""
     id: int
+    client_id: uuid.UUID
     geography_id: Optional[int]
     zip_codes: str
     service_category: str
@@ -83,4 +85,5 @@ class IntelligenceReportResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        use_enum_values = True
 

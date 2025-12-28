@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from app.models.household import PropertyType, OwnershipType
+import uuid
 
 
 class HouseholdCreate(BaseModel):
@@ -29,6 +30,7 @@ class HouseholdCreate(BaseModel):
 class HouseholdResponse(BaseModel):
     """Schema for household response"""
     id: int
+    client_id: uuid.UUID
     geography_id: Optional[int]
     zip_code_id: Optional[int]
     neighborhood_id: Optional[int]

@@ -4,6 +4,7 @@ Geography Schemas
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import uuid
 
 
 class GeographyCreate(BaseModel):
@@ -19,6 +20,7 @@ class GeographyCreate(BaseModel):
 class GeographyResponse(BaseModel):
     """Schema for geography response"""
     id: int
+    client_id: uuid.UUID
     name: str
     type: str
     state_code: str

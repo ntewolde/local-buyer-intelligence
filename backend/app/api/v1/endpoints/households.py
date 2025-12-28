@@ -5,10 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.dependencies import get_current_active_client_id
 from app.models.household import Household
 from app.schemas.household import HouseholdCreate, HouseholdResponse
 from app.services.intelligence_engine import IntelligenceEngine
 from app.models.demand_signal import ServiceCategory
+import uuid
 
 router = APIRouter()
 
@@ -16,10 +18,13 @@ router = APIRouter()
 @router.post("/", response_model=HouseholdResponse)
 async def create_household(
     household: HouseholdCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Create a new household record"""
-    db_household = Household(**household.model_dump())
+    household_data = household.model_dump()
+    household_data["client_id"] = client_id
+    db_household = Household(**household_data)
     db.add(db_household)
     db.commit()
     db.refresh(db_household)
@@ -33,10 +38,11 @@ async def list_households(
     neighborhood_id: Optional[int] = Query(None),
     limit: int = Query(100, le=1000),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """List households with optional filters"""
-    query = db.query(Household)
+    query = db.query(Household).filter(Household.client_id == client_id)
     
     if geography_id:
         query = query.filter(Household.geography_id == geography_id)
@@ -54,10 +60,14 @@ async def list_households(
 @router.get("/{household_id}", response_model=HouseholdResponse)
 async def get_household(
     household_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Get a specific household"""
-    household = db.query(Household).filter(Household.id == household_id).first()
+    household = db.query(Household).filter(
+        Household.id == household_id,
+        Household.client_id == client_id
+    ).first()
     if not household:
         raise HTTPException(status_code=404, detail="Household not found")
     return household
@@ -66,10 +76,16 @@ async def get_household(
 @router.post("/batch", response_model=List[HouseholdResponse])
 async def create_households_batch(
     households: List[HouseholdCreate],
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Create multiple household records"""
-    db_households = [Household(**h.model_dump()) for h in households]
+    db_households = []
+    for h in households:
+        h_data = h.model_dump()
+        h_data["client_id"] = client_id
+        db_households.append(Household(**h_data))
+    
     db.add_all(db_households)
     db.commit()
     
@@ -86,7 +102,8 @@ async def get_household_demand_scores(
     min_score: float = Query(0.0, ge=0.0, le=100.0),
     limit: int = Query(100, le=1000),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Get households with demand scores for a geography"""
     try:
@@ -96,6 +113,7 @@ async def get_household_demand_scores(
     
     engine = IntelligenceEngine(db)
     households = engine.get_households_by_geography(
+        client_id=client_id,
         geography_id=geography_id,
         service_category=service_cat,
         min_demand_score=min_score
