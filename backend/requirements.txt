@@ -18,6 +18,9 @@ redis==5.0.1
 httpx==0.25.2
 requests==2.31.0
 
+# Calendar Parsing (Option 3: Public Signals Ingestion)
+icalendar==5.0.11
+
 # Data Processing
 pandas==2.1.3
 numpy==1.26.2

@@ -8,6 +8,9 @@ from app.models.intelligence_report import IntelligenceReport
 from app.models.client import Client, User, UserRole
 from app.models.ingestion import IngestionRun, SourceType, IngestionStatus
 from app.models.channel import Channel, ChannelType
+from app.models.channel_outreach import ChannelOutreach, OutreachStatus
+from app.models.campaign import Campaign, CampaignReport, CampaignStatus
+from app.models.lead_funnel import LandingPage, Lead, ConsentType, LeadStatus
 
 __all__ = [
     "Household",
@@ -26,5 +29,14 @@ __all__ = [
     "IngestionStatus",
     "Channel",
     "ChannelType",
+    "ChannelOutreach",
+    "OutreachStatus",
+    "Campaign",
+    "CampaignReport",
+    "CampaignStatus",
+    "LandingPage",
+    "Lead",
+    "ConsentType",
+    "LeadStatus",
 ]
 

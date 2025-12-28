@@ -45,6 +45,13 @@ class Channel(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
+    # Option 4: Channel CRM fields (scoring and outreach tracking)
+    quality_score = Column(Integer, nullable=True)  # 0-100 quality/relevance score
+    engagement_score = Column(Integer, nullable=True)  # 0-100 engagement potential
+    last_contacted_at = Column(DateTime(timezone=True), nullable=True)
+    contact_status = Column(String(50), nullable=True)  # e.g., "not_contacted", "contacted", "responded", "partnered"
+    outreach_notes = Column(Text, nullable=True)  # Notes about outreach attempts/responses
+    
     # Relationships
     client = relationship("Client", back_populates="channels")
     geography = relationship("Geography")

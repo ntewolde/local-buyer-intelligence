@@ -32,6 +32,9 @@ class Client(Base):
     channels = relationship("Channel", back_populates="client")
     ingestion_runs = relationship("IngestionRun", back_populates="client")
     intelligence_reports = relationship("IntelligenceReport", back_populates="client")
+    campaigns = relationship("Campaign", back_populates="client")
+    leads = relationship("Lead", back_populates="client")
+    landing_pages = relationship("LandingPage", back_populates="client")
     
     def __repr__(self):
         return f"<Client {self.name}>"
