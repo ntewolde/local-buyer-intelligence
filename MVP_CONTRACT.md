@@ -96,6 +96,15 @@ The following modules are **NOT part of the MVP** and are gated by feature flags
    - Do NOT scrape or store personal emails, phones, names, addresses, or social profiles
    - Only aggregated/geographic data is allowed
    - PII Guard enforces this at multiple layers (imports, API, service layer)
+   
+   **Explicit Forbidden Keys** (case-insensitive, normalized):
+   - **Contact Information**: `email`, `e-mail`, `e_mail`, `email_address`, `phone`, `phone_number`, `telephone`, `mobile`, `cell`, `cell_phone`
+   - **Personal Names**: `firstname`, `first_name`, `fname`, `lastname`, `last_name`, `lname`, `surname`, `full_name`, `owner`, `owner_name`, `property_owner`, `homeowner_name`
+   - **Addresses**: `address`, `street`, `street_address`, `street_address_line_1`, `apt`, `apartment`, `unit`, `unit_number`, `suite`
+   - **Identity Documents**: `ssn`, `social_security_number`, `social_security`, `dob`, `date_of_birth`, `birthday`, `birth_date`, `driver_license`, `drivers_license`, `dl_number`, `passport`, `passport_number`
+   - **Social Media**: `facebook`, `facebook_id`, `facebook_url`, `instagram`, `instagram_id`, `instagram_url`, `linkedin`, `linkedin_id`, `linkedin_url`, `twitter`, `twitter_id`, `twitter_url`, `twitter_handle`, `tiktok`, `tiktok_id`, `tiktok_url`
+   
+   **Note**: The keys `name` and `fullname` (without underscore) are **allowed** as they are required for organizations and institutions. Only personal identifiers (as listed above) are forbidden.
 
 2. **Data Sources**
    - Official public APIs (e.g., Census ACS)
