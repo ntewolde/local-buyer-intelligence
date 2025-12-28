@@ -11,7 +11,7 @@ import uuid
 router = APIRouter()
 
 
-@router.post("/upload")
+@router.post("/")
 async def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -39,4 +39,7 @@ async def upload_file(
         "filename": file.filename,
         "size": len(content)
     }
+
+
+
 

@@ -193,3 +193,8 @@ def generate_report_task(self: Task, report_id: int, client_id: str):
     finally:
         db.close()
 
+
+
+
+
+

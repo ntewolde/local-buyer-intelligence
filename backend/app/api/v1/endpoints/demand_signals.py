@@ -7,6 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_client_id
+from app.core.pii_guard import assert_no_pii_keys
 from app.models.demand_signal import DemandSignal, ServiceCategory, SignalType
 from app.schemas.demand_signal import DemandSignalCreate, DemandSignalResponse
 import uuid
@@ -22,6 +23,8 @@ async def create_demand_signal(
 ):
     """Create a new demand signal"""
     signal_data = signal.model_dump()
+    # PII guard: validate no PII in input
+    assert_no_pii_keys(signal_data)
     signal_data["client_id"] = client_id
     db_signal = DemandSignal(**signal_data)
     db.add(db_signal)
@@ -106,6 +109,8 @@ async def create_demand_signals_batch(
     db_signals = []
     for s in signals:
         s_data = s.model_dump()
+        # PII guard: validate no PII in input
+        assert_no_pii_keys(s_data)
         s_data["client_id"] = client_id
         db_signals.append(DemandSignal(**s_data))
     

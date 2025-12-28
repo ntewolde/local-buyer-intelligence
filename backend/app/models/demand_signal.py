@@ -1,7 +1,7 @@
 """
 Demand Signal Models
 """
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
@@ -80,7 +80,7 @@ class DemandSignal(Base):
     value = Column(Float, nullable=True)
     
     # Metadata JSON for flexible additional data
-    metadata = Column(Text)  # JSON string
+    signal_metadata = Column(Text)  # JSON string (renamed from 'metadata' to avoid SQLAlchemy Declarative API conflict)
     
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())

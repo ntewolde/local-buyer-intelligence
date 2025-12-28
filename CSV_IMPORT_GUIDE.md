@@ -210,3 +210,8 @@ curl -X POST "http://localhost:8000/api/v1/import/property?geography_id=1&file_r
 - Review example templates in `examples/` folder
 - See main README.md for general information
 
+
+
+
+
+

@@ -36,7 +36,7 @@ python-dotenv==1.0.0
 pytz==2023.3
 
 # Environment
-python-environ==0.4.58
+python-environ==0.4.54
 
 # Testing
 pytest==7.4.3

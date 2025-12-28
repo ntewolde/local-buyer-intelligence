@@ -88,6 +88,7 @@ class CensusCollector(BaseCollector):
         """
         Fetch census data for a single ZIP code
         Uses ACS 5-year estimates
+        Implements retry with exponential backoff for 429/5xx errors
         """
         url = f"{self.CENSUS_API_BASE}/{self.ACS5_YEAR}/acs/acs5"
         
@@ -100,48 +101,79 @@ class CensusCollector(BaseCollector):
             "key": None  # Census API doesn't require key for public data, but can add if needed
         }
         
-        try:
-            response = requests.get(url, params=params, timeout=30)
-            response.raise_for_status()
-            
-            result = response.json()
-            
-            # Parse result (first row is headers, second row is data)
-            if len(result) < 2:
-                return None
-            
-            headers = result[0]
-            values = result[1]
-            
-            # Create dictionary mapping variable codes to values
-            data = {}
-            for i, header in enumerate(headers):
-                if i < len(values):
-                    value = values[i]
-                    # Convert to appropriate type
-                    try:
-                        data[header] = int(value) if value and value != "-" else None
-                    except (ValueError, TypeError):
-                        data[header] = float(value) if value and value != "-" else None
-            
-            # Map to friendly names
-            mapped_data = {
-                "population": data.get("B01003_001E"),
-                "total_housing_units": data.get("B25001_001E"),
-                "median_household_income": data.get("B19013_001E"),
-                "median_age": data.get("B01002_001E"),
-                "owner_occupied_units": data.get("B25003_002E"),
-                "renter_occupied_units": data.get("B25003_003E"),
-            }
-            
-            return mapped_data
+        # Retry logic with exponential backoff
+        max_retries = 3
+        base_delay = 1.0  # Start with 1 second
         
-        except requests.exceptions.RequestException as e:
-            print(f"Census API request failed for ZIP {zip_code}: {e}")
-            return None
-        except (KeyError, IndexError, ValueError) as e:
-            print(f"Error parsing census data for ZIP {zip_code}: {e}")
-            return None
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, params=params, timeout=30)
+                
+                # Handle rate limiting (429) and server errors (5xx)
+                if response.status_code == 429:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)  # Exponential backoff
+                        time.sleep(delay)
+                        continue
+                    else:
+                        print(f"Rate limit exceeded for ZIP {zip_code} after {max_retries} attempts")
+                        return None
+                
+                if response.status_code >= 500:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)  # Exponential backoff
+                        time.sleep(delay)
+                        continue
+                    else:
+                        response.raise_for_status()
+                
+                response.raise_for_status()
+                
+                result = response.json()
+                
+                # Parse result (first row is headers, second row is data)
+                if len(result) < 2:
+                    return None
+                
+                headers = result[0]
+                values = result[1]
+                
+                # Create dictionary mapping variable codes to values
+                data = {}
+                for i, header in enumerate(headers):
+                    if i < len(values):
+                        value = values[i]
+                        # Convert to appropriate type
+                        try:
+                            data[header] = int(value) if value and value != "-" else None
+                        except (ValueError, TypeError):
+                            data[header] = float(value) if value and value != "-" else None
+                
+                # Map to friendly names
+                mapped_data = {
+                    "population": data.get("B01003_001E"),
+                    "total_housing_units": data.get("B25001_001E"),
+                    "median_household_income": data.get("B19013_001E"),
+                    "median_age": data.get("B01002_001E"),
+                    "owner_occupied_units": data.get("B25003_002E"),
+                    "renter_occupied_units": data.get("B25003_003E"),
+                }
+                
+                return mapped_data
+            
+            except requests.exceptions.RequestException as e:
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                else:
+                    print(f"Census API request failed for ZIP {zip_code} after {max_retries} attempts: {e}")
+                    return None
+            except (KeyError, IndexError, ValueError) as e:
+                print(f"Error parsing census data for ZIP {zip_code}: {e}")
+                return None
+        
+        return None
     
     def validate_data(self, data: Dict[str, Any]) -> bool:
         """Validate census data"""
@@ -226,7 +258,7 @@ class CensusCollector(BaseCollector):
                     value=float(item["population"]),
                     source_name="census_acs5",
                     source_url=f"{self.CENSUS_API_BASE}/{self.ACS5_YEAR}/acs/acs5",
-                    metadata=json.dumps({
+                    signal_metadata=json.dumps({
                         "source": "census_acs5",
                         "variable": "B01003_001E",
                         "year": self.ACS5_YEAR,
@@ -248,7 +280,7 @@ class CensusCollector(BaseCollector):
                     value=float(item["median_household_income"]),
                     source_name="census_acs5",
                     source_url=f"{self.CENSUS_API_BASE}/{self.ACS5_YEAR}/acs/acs5",
-                    metadata=json.dumps({
+                    signal_metadata=json.dumps({
                         "source": "census_acs5",
                         "variable": "B19013_001E",
                         "year": self.ACS5_YEAR,

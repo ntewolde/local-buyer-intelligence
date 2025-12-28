@@ -187,3 +187,8 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_geographies_id'), table_name='geographies')
     op.drop_table('geographies')
 
+
+
+
+
+

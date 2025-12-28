@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_client_id
+from app.core.pii_guard import assert_no_pii_keys
 from app.models.geography import Geography, ZIPCode, Neighborhood
 from app.schemas.geography import (
     GeographyCreate,
@@ -26,6 +27,8 @@ async def create_geography(
 ):
     """Create a new geography record"""
     geo_data = geography.model_dump()
+    # PII guard: validate no PII in input
+    assert_no_pii_keys(geo_data)
     geo_data["client_id"] = client_id
     db_geo = Geography(**geo_data)
     db.add(db_geo)
@@ -92,10 +95,14 @@ async def get_geography_zip_codes(
 @router.get("/zip-codes/{zip_code}", response_model=ZIPCodeResponse)
 async def get_zip_code(
     zip_code: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Get ZIP code by code string"""
-    zip_obj = db.query(ZIPCode).filter(ZIPCode.zip_code == zip_code).first()
+    zip_obj = db.query(ZIPCode).join(Geography).filter(
+        ZIPCode.zip_code == zip_code,
+        Geography.client_id == client_id
+    ).first()
     if not zip_obj:
         raise HTTPException(status_code=404, detail="ZIP code not found")
     return zip_obj
@@ -107,16 +114,17 @@ async def list_zip_codes(
     geography_id: Optional[int] = Query(None),
     limit: int = Query(100, le=500),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """List ZIP codes with optional filters"""
-    query = db.query(ZIPCode)
+    query = db.query(ZIPCode).join(Geography).filter(Geography.client_id == client_id)
     
     if geography_id:
         query = query.filter(ZIPCode.geography_id == geography_id)
     elif state_code:
-        # Join with geography to filter by state
-        query = query.join(Geography).filter(Geography.state_code == state_code.upper())
+        # Filter by state
+        query = query.filter(Geography.state_code == state_code.upper())
     
     zip_codes = query.offset(offset).limit(limit).all()
     return zip_codes

@@ -27,3 +27,8 @@ Write-Host "   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_
 Write-Host "   git push -u origin main" -ForegroundColor Cyan
 Write-Host "`nOr see GIT_SETUP.md for detailed instructions." -ForegroundColor White
 
+
+
+
+
+

@@ -52,3 +52,8 @@ class Channel(Base):
     def __repr__(self):
         return f"<Channel {self.name} ({self.channel_type.value})>"
 
+
+
+
+
+

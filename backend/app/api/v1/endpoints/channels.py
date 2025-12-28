@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_client_id
+from app.core.pii_guard import assert_no_pii_keys
 from app.models.channel import Channel, ChannelType
 from app.schemas.channel import ChannelCreate, ChannelResponse
 import uuid
@@ -20,9 +21,12 @@ async def create_channel(
     client_id: uuid.UUID = Depends(get_current_active_client_id)
 ):
     """Create a new channel"""
+    channel_data = channel.model_dump(exclude={"client_id"})
+    # PII guard: validate no PII in input
+    assert_no_pii_keys(channel_data)
     db_channel = Channel(
         client_id=client_id,
-        **channel.model_dump(exclude={"client_id"})
+        **channel_data
     )
     db.add(db_channel)
     db.commit()
@@ -102,6 +106,8 @@ async def update_channel(
     
     # Update fields
     update_data = channel_update.model_dump(exclude={"client_id"}, exclude_unset=True)
+    # PII guard: validate no PII in input
+    assert_no_pii_keys(update_data)
     for field, value in update_data.items():
         setattr(channel, field, value)
     
@@ -133,4 +139,7 @@ async def delete_channel(
     db.delete(channel)
     db.commit()
     return None
+
+
+
 

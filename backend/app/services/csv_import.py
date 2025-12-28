@@ -173,7 +173,7 @@ class CSVImportService:
                 title=f"Property Aggregate: {agg_data['zip_code']}",
                 value=float(agg_data["count"]),
                 source_name="csv_property_import",
-                metadata=json.dumps(metadata)
+                signal_metadata=json.dumps(metadata)
             )
             self.db.add(signal)
             imported += 1

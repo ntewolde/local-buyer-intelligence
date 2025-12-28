@@ -199,7 +199,8 @@ class IntelligenceEngine:
             for signal in signals:
                 if signal.zip_code_id == household.zip_code_id:
                     # If median income signal, boost score for higher income areas
-                    if "income" in (signal.metadata or "").lower() and signal.value:
+                    metadata_str = signal.signal_metadata or ""
+                    if "income" in metadata_str.lower() and signal.value:
                         if signal.value > 75000:
                             score += 5.0
                         elif signal.value > 50000:
@@ -308,7 +309,8 @@ class IntelligenceEngine:
             # Boost based on demographic signals
             zip_signals = signals_by_zip.get(zip_code.id, [])
             for signal in zip_signals:
-                if "income" in (signal.metadata or "").lower() and signal.value:
+                metadata_str = signal.metadata or ""
+                if "income" in metadata_str.lower() and signal.value:
                     if signal.value > 75000:
                         avg_score += 5.0
                     elif signal.value > 50000:
@@ -317,4 +319,91 @@ class IntelligenceEngine:
             scores[zip_code.zip_code] = round(min(100.0, max(0.0, avg_score)), 2)
         
         return scores
+    
+    def get_top_zip_codes_with_rationale(
+        self,
+        client_id: uuid.UUID,
+        zip_code_ids: List[int],
+        service_category: ServiceCategory,
+        top_n: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Get top ZIP codes by demand score with rationale (why they're top)
+        Returns list of dicts with zip_code, score, and rationale
+        """
+        zip_scores = self.calculate_zip_demand_scores(client_id, zip_code_ids, service_category)
+        
+        # Sort by score descending
+        sorted_zips = sorted(zip_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        top_zips = []
+        for zip_code, score in sorted_zips[:top_n]:
+            # Get ZIP code object for additional context
+            zip_obj = self.db.query(ZIPCode).filter(ZIPCode.zip_code == zip_code).first()
+            if not zip_obj:
+                continue
+            
+            # Build rationale
+            rationale_parts = []
+            
+            # Get demographic signals for context
+            from app.models.demand_signal import DemandSignal, SignalType
+            signals = self.db.query(DemandSignal).filter(
+                DemandSignal.client_id == client_id,
+                DemandSignal.zip_code_id == zip_obj.id,
+                DemandSignal.signal_type == SignalType.DEMOGRAPHIC
+            ).all()
+            
+            # Get households for context
+            households = self.db.query(Household).filter(
+                Household.client_id == client_id,
+                Household.zip_code_id == zip_obj.id
+            ).all()
+            
+            # Add rationale based on score
+            if score >= 70:
+                rationale_parts.append("High demand score indicates strong potential")
+            elif score >= 50:
+                rationale_parts.append("Moderate to high demand score")
+            else:
+                rationale_parts.append("Lower demand but still viable")
+            
+            # Add demographic context
+            for signal in signals:
+                metadata_str = signal.metadata or ""
+                if "income" in metadata_str.lower() and signal.value:
+                    if signal.value > 75000:
+                        rationale_parts.append("High median household income")
+                    elif signal.value > 50000:
+                        rationale_parts.append("Moderate to high household income")
+            
+            if zip_obj.population:
+                if zip_obj.population > 20000:
+                    rationale_parts.append("Large population base")
+                elif zip_obj.population > 10000:
+                    rationale_parts.append("Moderate population base")
+            
+            # Add household characteristics
+            if households:
+                owners = sum(1 for h in households if h.ownership_type == OwnershipType.OWNER)
+                owner_pct = (owners / len(households) * 100) if households else 0
+                if owner_pct > 60:
+                    rationale_parts.append("High percentage of homeowners")
+                
+                large_lots = sum(1 for h in households if h.lot_size_sqft and h.lot_size_sqft > 5000)
+                if large_lots > len(households) * 0.3:
+                    rationale_parts.append("Many properties with large lots")
+            
+            rationale = ". ".join(rationale_parts) if rationale_parts else "Standard market characteristics"
+            
+            top_zips.append({
+                "zip_code": zip_code,
+                "score": score,
+                "rationale": rationale,
+                "population": zip_obj.population,
+                "household_count": zip_obj.household_count,
+                "median_income": zip_obj.median_income
+            })
+        
+        return top_zips
 

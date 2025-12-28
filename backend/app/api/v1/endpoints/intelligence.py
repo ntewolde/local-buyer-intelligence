@@ -62,6 +62,11 @@ async def create_intelligence_report(
     # Calculate ZIP demand scores
     zip_demand_scores = engine.calculate_zip_demand_scores(client_id, zip_code_ids, service_category)
     
+    # Get top ZIP codes with rationale (per spec section 8)
+    top_zips = engine.get_top_zip_codes_with_rationale(
+        client_id, zip_code_ids, service_category, top_n=5
+    )
+    
     # Calculate average demand score
     if households:
         total_score = sum(
@@ -99,6 +104,7 @@ async def create_intelligence_report(
         report_data={
             "buyer_profile": buyer_profile,
             "zip_demand_scores": zip_demand_scores,
+            "top_zip_codes": top_zips,  # Top ZIPs with rationale (per spec section 8)
             "channel_recommendations": channel_recommendations,
             "timing_recommendations": timing_recommendations,
         }

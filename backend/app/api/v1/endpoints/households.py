@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_client_id
+from app.core.pii_guard import assert_no_pii_keys
 from app.models.household import Household
 from app.schemas.household import HouseholdCreate, HouseholdResponse
 from app.services.intelligence_engine import IntelligenceEngine
@@ -23,6 +24,8 @@ async def create_household(
 ):
     """Create a new household record"""
     household_data = household.model_dump()
+    # PII guard: validate no PII in input
+    assert_no_pii_keys(household_data)
     household_data["client_id"] = client_id
     db_household = Household(**household_data)
     db.add(db_household)
@@ -83,6 +86,8 @@ async def create_households_batch(
     db_households = []
     for h in households:
         h_data = h.model_dump()
+        # PII guard: validate no PII in input
+        assert_no_pii_keys(h_data)
         h_data["client_id"] = client_id
         db_households.append(Household(**h_data))
     

@@ -14,13 +14,13 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str = "sqlite+pysqlite:///:memory:"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "test-secret-key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
@@ -43,4 +43,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+
 

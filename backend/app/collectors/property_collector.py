@@ -143,3 +143,8 @@ class PropertyCollector(BaseCollector):
         self.db.commit()
         return stored
 
+
+
+
+
+
