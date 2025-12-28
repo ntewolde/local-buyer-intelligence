@@ -1,3 +1,5 @@
+# NOTE: This module is future work and not part of the MVP contract.
+# It is gated or disabled pending stabilization and compliance review.
 """
 Lead Funnel API Endpoints (Option 2: Opt-in Lead Funnel Builder)
 

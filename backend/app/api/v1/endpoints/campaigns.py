@@ -1,3 +1,5 @@
+# NOTE: This module is future work and not part of the MVP contract.
+# It is gated or disabled pending stabilization and compliance review.
 """
 Campaign API Endpoints (Option 5: Campaign Orchestrator)
 

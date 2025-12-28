@@ -1,3 +1,5 @@
+# NOTE: This module is future work and not part of the MVP contract.
+# It is gated or disabled pending stabilization and compliance review.
 """
 Public Signals Ingestion API Endpoints (Option 3: Public Signals Ingestion)
 

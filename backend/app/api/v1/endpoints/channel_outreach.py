@@ -1,3 +1,5 @@
+# NOTE: This module is future work and not part of the MVP contract.
+# It is gated or disabled pending stabilization and compliance review.
 """
 Channel Outreach API Endpoints (Option 4: Institutional Channel CRM)
 
