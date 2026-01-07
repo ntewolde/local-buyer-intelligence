@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: local-buyer-intelligence
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: ghcr.io/ntewolde/local-buyer-intelligence-backend:latest
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DATABASE_URL
+      imagePullSecrets:
+        - name: ghcr-secret

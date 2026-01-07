@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: local-buyer-intelligence
+data:
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  ALGORITHM: "HS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  API_RATE_LIMIT_PER_MINUTE: "60"
+  FEATURE_LEAD_FUNNEL_ENABLED: "false"
+  FEATURE_PUBLIC_SIGNALS_ENABLED: "false"
+  FEATURE_CHANNEL_CRM_ENABLED: "false"
+  FEATURE_CAMPAIGNS_ENABLED: "false"
+  REDIS_URL: "redis://redis-service:6379/0"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "local_buyer_intelligence"

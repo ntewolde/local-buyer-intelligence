@@ -1,0 +1,84 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}-backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure Kubernetes context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Set environment variables
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=sha-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "env=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=main" >> $GITHUB_OUTPUT
+            echo "env=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set namespace
+        id: namespace
+        run: |
+          if [ "${{ steps.vars.outputs.env }}" == "production" ]; then
+            echo "ns=local-buyer-intelligence" >> $GITHUB_OUTPUT
+          else
+            echo "ns=local-buyer-intelligence-staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ steps.namespace.outputs.ns }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy with Kustomize
+        run: |
+          cd k8s/overlays/${{ steps.vars.outputs.env }}
+          kubectl apply -k .
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/backend -n ${{ steps.namespace.outputs.ns }} --timeout=300s || true
+          kubectl rollout status deployment/frontend -n ${{ steps.namespace.outputs.ns }} --timeout=300s || true
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ steps.vars.outputs.env }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Namespace: ${{ steps.namespace.outputs.ns }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Image Tag: ${{ steps.vars.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${{ steps.namespace.outputs.ns }} -o wide >> $GITHUB_STEP_SUMMARY

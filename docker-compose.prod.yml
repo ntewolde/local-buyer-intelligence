@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-local_buyer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_buyer_password}
+      POSTGRES_DB: ${POSTGRES_DB:-local_buyer_intelligence}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-local_buyer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lbi-network
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lbi-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-local_buyer}:${POSTGRES_PASSWORD:-local_buyer_password}@postgres:5432/${POSTGRES_DB:-local_buyer_intelligence}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      MAPBOX_ACCESS_TOKEN: ${MAPBOX_ACCESS_TOKEN:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lbi-network
+    restart: unless-stopped
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-local_buyer}:${POSTGRES_PASSWORD:-local_buyer_password}@postgres:5432/${POSTGRES_DB:-local_buyer_intelligence}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lbi-network
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-local_buyer}:${POSTGRES_PASSWORD:-local_buyer_password}@postgres:5432/${POSTGRES_DB:-local_buyer_intelligence}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+    depends_on:
+      - redis
+    networks:
+      - lbi-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
+        NEXT_PUBLIC_MAPBOX_TOKEN: ${NEXT_PUBLIC_MAPBOX_TOKEN:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - lbi-network
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-local_buyer}:${POSTGRES_PASSWORD:-local_buyer_password}@postgres:5432/${POSTGRES_DB:-local_buyer_intelligence}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - lbi-network
+    restart: "no"
+    profiles:
+      - migrate
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  lbi-network:
+    driver: bridge

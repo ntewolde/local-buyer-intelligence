@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: local-buyer-intelligence
+  labels:
+    app.kubernetes.io/name: local-buyer-intelligence
+    app.kubernetes.io/managed-by: kustomize
