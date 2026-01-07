@@ -35,7 +35,7 @@ export default function DemandHeatmap({
           const scores = report.zip_demand_scores || {};
           const formattedData = Object.entries(scores).map(([zip, score]) => ({
             zip_code: zip,
-            demand_score: score,
+            demand_score: score as number,
           }));
 
           setZipScores(formattedData.sort((a, b) => b.demand_score - a.demand_score));
