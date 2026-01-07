@@ -67,15 +67,15 @@ def upgrade() -> None:
     # Update demand_signals table - add client_id, value, and metadata
     op.add_column('demand_signals', sa.Column('client_id', postgresql.UUID(as_uuid=True), nullable=True))
     op.add_column('demand_signals', sa.Column('value', sa.Float(), nullable=True))
-    op.add_column('demand_signals', sa.Column('metadata', sa.Text(), nullable=True))
+    op.add_column('demand_signals', sa.Column('signal_metadata', sa.Text(), nullable=True))
     op.alter_column('demand_signals', 'geography_id', nullable=True)
     op.alter_column('demand_signals', 'zip_code_id', nullable=True)
     # Add DEMOGRAPHIC to SignalType enum (if not using check constraint, update enum)
     op.create_index(op.f('ix_demand_signals_client_id'), 'demand_signals', ['client_id'], unique=False)
     op.create_foreign_key('fk_demand_signals_client_id', 'demand_signals', 'clients', ['client_id'], ['id'])
     
-    # Update intelligence_reports table - update client_id to UUID
-    op.alter_column('intelligence_reports', 'client_id', existing_type=sa.Integer(), type_=postgresql.UUID(as_uuid=True), nullable=True, postgresql_using='client_id::text::uuid')
+    # Update intelligence_reports table - add client_id column
+    op.add_column('intelligence_reports', sa.Column('client_id', postgresql.UUID(as_uuid=True), nullable=True))
     op.create_index(op.f('ix_intelligence_reports_client_id'), 'intelligence_reports', ['client_id'], unique=False)
     op.create_foreign_key('fk_intelligence_reports_client_id', 'intelligence_reports', 'clients', ['client_id'], ['id'])
     
@@ -145,12 +145,12 @@ def downgrade() -> None:
     # Revert intelligence_reports
     op.drop_constraint('fk_intelligence_reports_client_id', 'intelligence_reports', type_='foreignkey')
     op.drop_index(op.f('ix_intelligence_reports_client_id'), table_name='intelligence_reports')
-    op.alter_column('intelligence_reports', 'client_id', existing_type=postgresql.UUID(as_uuid=True), type_=sa.Integer(), nullable=True)
+    op.drop_column('intelligence_reports', 'client_id')
     
     # Revert demand_signals
     op.drop_constraint('fk_demand_signals_client_id', 'demand_signals', type_='foreignkey')
     op.drop_index(op.f('ix_demand_signals_client_id'), table_name='demand_signals')
-    op.drop_column('demand_signals', 'metadata')
+    op.drop_column('demand_signals', 'signal_metadata')
     op.drop_column('demand_signals', 'value')
     op.drop_column('demand_signals', 'client_id')
     op.alter_column('demand_signals', 'geography_id', nullable=False)
