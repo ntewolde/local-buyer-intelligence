@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - cluster-issuers/self-signed.yaml
+  - cluster-issuers/letsencrypt-staging.yaml
+  - cluster-issuers/letsencrypt-prod.yaml
+
+patches:
+  - path: patches/ingress-tls-patch.yaml
+    target:
+      kind: Ingress
+      name: lbi-ingress

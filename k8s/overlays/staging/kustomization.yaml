@@ -6,7 +6,19 @@ namespace: local-buyer-intelligence-staging
 resources:
   - ../../base
 
+# Note: Observability components (monitoring, logging, tls) should be installed separately
+# as they use dedicated namespaces. See k8s/components/README.md for instructions.
+#
+# To install components:
+#   kubectl apply -k k8s/components/tls
+#   kubectl apply -k k8s/components/monitoring
+#   kubectl apply -k k8s/components/logging
+
 namePrefix: staging-
+
+labels:
+  - pairs:
+      environment: staging
 
 patches:
   - patch: |-
@@ -31,11 +43,8 @@ patches:
       kind: Deployment
       name: celery-worker
 
-configMapGenerator:
-  - name: app-config
-    behavior: merge
-    literals:
-      - ENVIRONMENT=staging
+# Environment configuration is set via labels above
+# Additional staging-specific config can be added via patches
 
 images:
   - name: ghcr.io/ntewolde/local-buyer-intelligence-backend

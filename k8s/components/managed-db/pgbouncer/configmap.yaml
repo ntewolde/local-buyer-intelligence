@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: local-buyer-intelligence
+data:
+  pgbouncer.ini: |
+    [databases]
+    # Database connection to external managed PostgreSQL
+    # The actual host/credentials are injected via environment variables
+    * = host=${DATABASE_HOST} port=${DATABASE_PORT} dbname=${DATABASE_NAME}
+
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = 5432
+
+    # Authentication
+    auth_type = md5
+    auth_file = /etc/pgbouncer/userlist.txt
+
+    # Pool settings
+    pool_mode = transaction
+    max_client_conn = 200
+    default_pool_size = 20
+    min_pool_size = 5
+    reserve_pool_size = 5
+    reserve_pool_timeout = 3
+
+    # Connection limits
+    max_db_connections = 50
+    max_user_connections = 50
+
+    # Timeouts
+    server_connect_timeout = 15
+    server_idle_timeout = 600
+    server_lifetime = 3600
+    client_idle_timeout = 0
+    client_login_timeout = 60
+
+    # Logging
+    log_connections = 1
+    log_disconnections = 1
+    log_pooler_errors = 1
+    stats_period = 60
+
+    # Admin console
+    admin_users = pgbouncer_admin
+    stats_users = pgbouncer_stats
+
+  userlist.txt: |
+    # Format: "username" "password"
+    # Passwords should be md5 hashed: echo -n "password${username}" | md5sum
+    # This file is typically generated from secrets at runtime
+    "app_user" "SCRAM-SHA-256$4096:..."

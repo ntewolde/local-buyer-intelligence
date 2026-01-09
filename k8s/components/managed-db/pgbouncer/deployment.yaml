@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: local-buyer-intelligence
+  labels:
+    app: pgbouncer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+    spec:
+      containers:
+        - name: pgbouncer
+          image: edoburu/pgbouncer:1.21.0
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: external-db-credentials
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: external-db-credentials
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: external-db-credentials
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: external-db-credentials
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: external-db-credentials
+                  key: DATABASE_PASSWORD
+            # PgBouncer-specific env vars
+            - name: PGBOUNCER_AUTH_TYPE
+              value: "md5"
+            - name: PGBOUNCER_POOL_MODE
+              value: "transaction"
+            - name: PGBOUNCER_MAX_CLIENT_CONN
+              value: "200"
+            - name: PGBOUNCER_DEFAULT_POOL_SIZE
+              value: "20"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: config
+              mountPath: /etc/pgbouncer
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: pgbouncer-config

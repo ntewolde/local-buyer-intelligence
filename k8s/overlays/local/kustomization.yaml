@@ -6,6 +6,13 @@ namespace: local-buyer-intelligence
 resources:
   - ../../base
 
+# Optional: Uncomment to enable monitoring/logging locally
+# Warning: These are resource-intensive for local development
+# components:
+#   - ../../components/monitoring
+#   - ../../components/logging
+#   - ../../components/tls  # Uses self-signed certificates
+
 patches:
   # Use local images with Never pull policy for backend
   - patch: |-

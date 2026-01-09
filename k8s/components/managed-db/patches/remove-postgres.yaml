@@ -1,0 +1,8 @@
+# This patch removes the in-cluster PostgreSQL StatefulSet
+# when using an external managed database
+$patch: delete
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: local-buyer-intelligence

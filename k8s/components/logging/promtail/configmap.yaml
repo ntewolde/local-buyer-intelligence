@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: monitoring
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      # Scrape logs from all pods
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          - cri: {}
+        relabel_configs:
+          # Only scrape pods with annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+            action: keep
+            regex: true
+          # Use pod name as job
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: job
+          # Add namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          # Add pod label
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          # Add container label
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          # Add app label from pod
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          # Set log path
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+
+      # Scrape all container logs (fallback)
+      - job_name: kubernetes-pods-all
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          - cri: {}
+        relabel_configs:
+          # Skip pods with explicit scrape annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+            action: drop
+            regex: true
+          # Only include pods from our namespaces
+          - source_labels: [__meta_kubernetes_namespace]
+            action: keep
+            regex: local-buyer-intelligence.*|monitoring
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: job
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__

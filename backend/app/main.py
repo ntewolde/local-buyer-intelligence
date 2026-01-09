@@ -6,6 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 
+# Prometheus metrics instrumentation
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+    PROMETHEUS_ENABLED = True
+except ImportError:
+    PROMETHEUS_ENABLED = False
+
 app = FastAPI(
     title="Local Buyer Intelligence Platform",
     description="Data-driven local demand intelligence without PII scraping",
@@ -41,6 +48,11 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+
+# Initialize Prometheus metrics (exposes /metrics endpoint)
+if PROMETHEUS_ENABLED:
+    Instrumentator().instrument(app).expose(app)
 
 
 

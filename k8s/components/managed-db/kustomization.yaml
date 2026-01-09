@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# This component switches from in-cluster PostgreSQL to an external managed database
+# (AWS RDS, Google Cloud SQL, DigitalOcean Managed Databases, etc.)
+
+resources:
+  - external-db-secret.yaml
+  - pgbouncer/configmap.yaml
+  - pgbouncer/deployment.yaml
+  - pgbouncer/service.yaml
+
+patches:
+  # Remove the in-cluster PostgreSQL StatefulSet
+  - path: patches/remove-postgres.yaml

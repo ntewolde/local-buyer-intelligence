@@ -6,6 +6,16 @@ namespace: local-buyer-intelligence
 resources:
   - ../../base
 
+# Note: Observability components should be installed separately.
+# See k8s/components/README.md for instructions.
+#
+# For production with managed database, also apply:
+#   kubectl apply -k k8s/components/managed-db
+
+labels:
+  - pairs:
+      environment: production
+
 patches:
   - patch: |-
       - op: replace
@@ -29,11 +39,8 @@ patches:
       kind: Deployment
       name: celery-worker
 
-configMapGenerator:
-  - name: app-config
-    behavior: merge
-    literals:
-      - ENVIRONMENT=production
+# Environment configuration is set via labels above
+# Additional production-specific config can be added via patches
 
 images:
   - name: ghcr.io/ntewolde/local-buyer-intelligence-backend
