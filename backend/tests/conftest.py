@@ -56,9 +56,15 @@ def test_env():
 
 @pytest.fixture(scope="session")
 def engine():
-    # Use in-memory SQLite for tests
+    # Use in-memory SQLite for tests, or PostgreSQL if DATABASE_URL is set
     test_db_url = os.environ.get("DATABASE_URL", "sqlite+pysqlite:///:memory:")
-    engine = create_engine(test_db_url, connect_args={"check_same_thread": False})
+
+    # check_same_thread is only valid for SQLite
+    if "sqlite" in test_db_url:
+        engine = create_engine(test_db_url, connect_args={"check_same_thread": False})
+    else:
+        engine = create_engine(test_db_url)
+
     Base.metadata.create_all(engine)
     return engine
 
