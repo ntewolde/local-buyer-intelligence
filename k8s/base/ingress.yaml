@@ -17,9 +17,8 @@ spec:
   #       - app.YOUR-IP.nip.io
   #     secretName: lbi-tls-secret
   rules:
-    # Replace YOUR-IP with your ingress load balancer IP
-    # Example: api.203.0.113.50.nip.io
-    - host: api.YOUR-IP.nip.io
+    # For minikube: run "minikube tunnel" then access via 127.0.0.1.nip.io
+    - host: api.127.0.0.1.nip.io
       http:
         paths:
           - path: /
@@ -29,7 +28,7 @@ spec:
                 name: backend-service
                 port:
                   number: 8000
-    - host: app.YOUR-IP.nip.io
+    - host: app.127.0.0.1.nip.io
       http:
         paths:
           - path: /

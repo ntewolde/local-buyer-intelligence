@@ -1,0 +1,70 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: local-buyer-intelligence
+
+resources:
+  - ../../base
+
+patches:
+  # Use local images with Never pull policy for backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: local-buyer-intelligence-backend:local
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+      - op: remove
+        path: /spec/template/spec/imagePullSecrets
+    target:
+      kind: Deployment
+      name: backend
+  # Celery worker
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: local-buyer-intelligence-backend:local
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+      - op: remove
+        path: /spec/template/spec/imagePullSecrets
+    target:
+      kind: Deployment
+      name: celery-worker
+  # Frontend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: local-buyer-intelligence-frontend:local
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+      - op: remove
+        path: /spec/template/spec/imagePullSecrets
+    target:
+      kind: Deployment
+      name: frontend
+  # Single replica for local dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: frontend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: celery-worker
