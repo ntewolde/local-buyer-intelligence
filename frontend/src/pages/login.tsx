@@ -20,7 +20,7 @@ export default function Login() {
 
     try {
       await authService.login({ email, password });
-      router.push('/');
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed');
     } finally {
